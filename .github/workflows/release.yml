@@ -1,0 +1,93 @@
+name: Release
+
+# Wydanie: git tag v0.1.0 && git push origin v0.1.0
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  APP_NAME: JubileuszApp
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  build:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows
+            os: windows-latest
+          - target: web
+            os: ubuntu-latest
+          - target: apk
+            os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - if: matrix.target == 'apk'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Config z sekretów
+        shell: bash
+        run: |
+          cat > config.json <<EOF
+          {"SUPABASE_URL":"${{ secrets.SUPABASE_URL }}","SUPABASE_KEY":"${{ secrets.SUPABASE_KEY }}","APP_NAME":"${{ env.APP_NAME }}"}
+          EOF
+      - run: flutter pub get
+      - name: Build
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          flutter build ${{ matrix.target }} --release \
+            --build-name="$VERSION" --build-number="${{ github.run_number }}" \
+            --dart-define-from-file=config.json
+      - name: Pakowanie (Windows)
+        if: matrix.target == 'windows'
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath "$env:APP_NAME-windows-$env:GITHUB_REF_NAME.zip"
+      - name: Pakowanie (Web)
+        if: matrix.target == 'web'
+        run: cd build/web && zip -r "../../$APP_NAME-web-$GITHUB_REF_NAME.zip" .
+      - name: Pakowanie (APK)
+        if: matrix.target == 'apk'
+        run: cp build/app/outputs/flutter-apk/app-release.apk "$APP_NAME-$GITHUB_REF_NAME.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: |
+            *.zip
+            *.apk
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

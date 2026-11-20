@@ -1,0 +1,36 @@
+# --- Projekt ---
+config.json
+.env
+/media/
+/web/media/
+
+# --- Flutter / Dart ---
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+*.g.dart.tmp
+
+# --- IDE ---
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+.DS_Store
+
+# --- Android ---
+/android/app/debug
+/android/app/profile
+/android/app/release
+/android/local.properties
+/android/key.properties
+*.jks
+*.keystore
+
+# --- Inne ---
+*.log
