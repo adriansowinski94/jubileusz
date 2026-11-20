@@ -13,7 +13,7 @@ jobs:
   analyze-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version-file: pubspec.yaml
@@ -26,7 +26,7 @@ jobs:
     needs: analyze-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version-file: pubspec.yaml
